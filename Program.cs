@@ -1,27 +1,9 @@
-﻿using drawer.Models;
-using iText.IO.Font;
-using iText.IO.Image;
-using iText.Kernel.Colors;
+﻿using iText.IO.Font;
 using iText.Kernel.Font;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
-using iText.Kernel.Pdf.Action;
-using iText.Kernel.Pdf.Canvas;
-using iText.Kernel.Pdf.Filespec;
 using iText.Layout;
 using iText.Layout.Element;
-using Newtonsoft.Json;
-using static System.Net.Mime.MediaTypeNames;
-using System.Text;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using iText.Kernel.Pdf.Canvas.Parser;
 using iText.Kernel.Pdf.Canvas.Parser.Listener;
 namespace ITexttest;
@@ -34,73 +16,56 @@ internal static class Program
 
         var font = PdfFontFactory.CreateFont(
                 System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "gosttypeb.ttf"),
-                PdfEncodings.IDENTITY_H);
-        string path = "D:\\pdf\\input.pdf";
-        var dest = "d:\\pdf\\doc1.pdf";
-        var file = new FileInfo(dest);
+                PdfEncodings.IDENTITY_H);           //инициализируем и загружаем шрифт в переменную
+
+        string path = "D:\\pdf\\input.pdf"; // указываем путь изначального файла
+        var dest = "d:\\pdf\\doc1.pdf"; 
+        var file = new FileInfo(dest); //создаем переменную и помещаем в нее инфу о файле, если файла нет то создать
         file.Directory?.Create();
 
 
 
-        var docPdf = new PdfDocument(new PdfWriter(dest));
+        var docPdf = new PdfDocument(new PdfWriter(dest)); //подключаем режим письма в нашем новом файле и создаем виртуальную версию файла в программе
+
         var doc = new Document(docPdf);
-        docPdf.SetDefaultPageSize(PageSize.A4.Rotate());
-        
 
+        docPdf.SetDefaultPageSize(PageSize.A4.Rotate()); // устанавливаем ориентацию страниц по умолчанию
 
-        /// добавление текста с i страницы в конструктор строк из парсера пдф текста
-        StringBuilder sb = new StringBuilder();
+        var pdfDocument = new PdfDocument(new PdfReader(path)); // создаем виртуальную копию изначального файла и указываем путь до него, подключаем режим чтения
 
-
-
-        var pdfDocument = new PdfDocument(new PdfReader(path));
-        var strategy = new LocationTextExtractionStrategy();
-        var textEventListener = new LocationTextExtractionStrategy();
-
-
-
-
-
+        var strategy = new LocationTextExtractionStrategy(); // создаем переменную которая будет описывать вид парсинга исходного файла
 
         FilteredEventListener listener = new FilteredEventListener();
-        var strat = listener.AttachEventListener(new TextLocationStrategy());
-        PdfCanvasProcessor processor = new PdfCanvasProcessor(listener);
+
+        var strat = listener.AttachEventListener(new TextLocationStrategy()); //окончательная переменная описывающая алгоритм парсинга файла
         
-        for (int i = 1; i <= pdfDocument.GetNumberOfPages(); ++i)
+       
+        
+        for (int i = 1; i <= 1/*pdfDocument.GetNumberOfPages()*/; ++i) // начало цикла парсинга, i = страница
 
         {
-            float pdfHei = docPdf.GetDefaultPageSize().GetHeight() ;
-            var page = pdfDocument.GetPage(i);
-            string text = PdfTextExtractor.GetTextFromPage(page, strategy);
-            string text2 = PdfTextExtractor.GetTextFromPage(page, strat);
-            List<textChunk> a = strat.objectResult;
+            float pdfHei = docPdf.GetDefaultPageSize().GetHeight(); // получаем размеры страницы
 
-            //Console.WriteLine(text+"gfhfghfgh");
-            string[] words = text.Split();
-            for (int j = 0; j < a.LongCount(); j++)
+            var page = pdfDocument.GetPage(i); // создаем переменную с содержимым определенной страницы
+
+            string text = PdfTextExtractor.GetTextFromPage(page, strategy); // из кода с содержимым парсим весь текст
+
+            string text2 = PdfTextExtractor.GetTextFromPage(page, strat); // парсим все формы(не удалять, а то не будет работать)
+
+            List<textChunk> a = strat.objectResult; // записываем все объекты в список чтобы потом получить их координаты
+
+            for (int j = 0; j < a.LongCount(); j++) //цикл написания полученной информации в новый файл 
             {
 
-                doc.Add(new Paragraph(a[j].text).SetFixedPosition((a[j].rect.GetY()),pdfHei- a[j].rect.GetX()-2, 1000).SetFont(font).SetFontSize(a[j].fontSize));
+                doc.Add(new Paragraph(a[j].text).SetFixedPosition(a[j].rect.GetY(),pdfHei- a[j].rect.GetX()-2, 1000).SetFont(font).SetFontSize(a[j].fontSize)); 
+
                 Console.WriteLine(pdfHei + "\n " + a[j].rect.GetX()+"\n");
             }
 
 
-            //sb.Append(text);
+            
         }
-        //PdfDocument reader = new PdfDocument(new PdfReader(filepath));
-        //Console.WriteLine(a[0].text+" "+ a[0].fontSize + " " + a[0].fontFamily + " " + a[0].rect.GetX() + " " + a[0].rect.GetX());
-
-
-
-
-
-        //doc.SetFont(font);
-        /// создание параграфа и добавление в него текста после чего добавление в документ
-        doc.Add(new Paragraph(sb.ToString()).SetFont(font).SetFixedPosition(200, 250, 200));
-        Console.WriteLine(sb.ToString(), font);/// текст не распознается из за отсутствия шрифта в консоли
-
-
-        /// закрытие всех объектов
+     
         doc.Close();
     }
 }
